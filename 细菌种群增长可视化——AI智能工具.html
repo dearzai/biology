@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>细菌种群增长曲线可视化（三图表版）</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            cursor: text;
+            display: inline-block;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .control-panel-left {
+            width: 380px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-right: 1px solid #eee;
+        }
+
+        .control-panel-right {
+            width: 380px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-left: 1px solid #eee;
+        }
+
+        .chart-panel {
+            flex: 1;
+            padding: 25px;
+            min-width: 600px;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-group h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+        }
+
+        .control-group h3 i {
+            margin-right: 10px;
+            color: #667eea;
+        }
+
+        .control-item {
+            margin-bottom: 15px;
+        }
+
+        .control-item label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .control-item input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            background: #e0e0e0;
+        }
+
+        .control-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .param-value {
+            display: inline-block;
+            width: 50px;
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .step-btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .step-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            background: #667eea;
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .step-btn:hover {
+            background: #5a6edb;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .btn-play {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-pause {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-reset {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .charts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .chart-item {
+            width: 100%;
+            height: 280px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-bar {
+            margin-top: 15px;
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .status-bar span {
+            color: #555;
+            font-size: 14px;
+        }
+
+        .status-bar .current-step {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* 新增的图表排序和显示控制样式 */
+        .chart-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .chart-order-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .chart-display-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .chart-order-btn, .chart-display-btn {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .chart-display-btn {
+            background: #20c997;
+        }
+
+        .chart-display-btn.hidden {
+            background: #6c757d;
+        }
+
+        .chart-order-btn i, .chart-display-btn i {
+            margin-right: 5px;
+        }
+
+        .chart-order-btn:hover {
+            background: #5a6edb;
+        }
+
+        .chart-display-btn:hover {
+            background: #17a2b8;
+        }
+
+        .chart-display-btn.hidden:hover {
+            background: #545b62;
+        }
+
+        /* 图表数值标签样式 */
+        .chart-value-label {
+            position: absolute;
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 1400px) {
+            .content {
+                flex-direction: column;
+            }
+            .control-panel-left, .control-panel-right {
+                width: 100%;
+                border: none;
+            }
+            .control-panel-left {
+                border-bottom: 1px solid #eee;
+            }
+            .control-panel-right {
+                border-bottom: 1px solid #eee;
+            }
+            .chart-panel {
+                min-width: unset;
+            }
+            .chart-item {
+                height: 250px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .chart-item {
+                height: 200px;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+            .chart-controls {
+                flex-direction: column;
+            }
+            .chart-order-controls, .chart-display-controls {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 contenteditable="true"><i class="fas fa-microbe"></i> 细菌种群增长曲线可视化</h1>
+            <p>J型分段增长（延迟期→对数期→减速期）| S型逻辑斯蒂增长 | 20分钟分裂一次 | 三图表独立展示</p>
+        </div>
+
+        <div class="content">
+            <!-- 左侧控制面板：演示控制 + J型参数 -->
+            <div class="control-panel-left">
+                <div class="control-group">
+                    <h3><i class="fas fa-play-circle"></i> 演示控制</h3>
+                    <div class="control-item">
+                        <label>演示速度 (毫秒/步，每步代表20分钟)</label>
+                        <input type="range" id="speed" min="100" max="1000" step="100" value="300">
+                        <div>
+                            <span>快速</span>
+                            <span class="param-value" id="speed-val">300</span>
+                            <span>慢速</span>
+                        </div>
+                    </div>
+                    <div class="control-item">
+                        <label>培养时间控制 (0 - <span id="max-step-val">30</span>步，每步20分钟)</label>
+                        <input type="range" id="time-step" min="0" max="30" step="1" value="0">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+                            <div>
+                                <span>当前步数：</span>
+                                <span class="param-value" id="time-step-val">0</span>
+                                <span>（对应培养时间：<span id="cultivate-time">0</span>分钟）</span>
+                            </div>
+                            <div class="step-btn-group">
+                                <button class="step-btn" id="step-back"><i class="fas fa-step-backward"></i> 后退</button>
+                                <button class="step-btn" id="step-forward"><i class="fas fa-step-forward"></i> 前进</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-play" id="play-btn">
+                            <i class="fas fa-play"></i> 播放
+                        </button>
+                        <button class="btn btn-pause" id="pause-btn">
+                            <i class="fas fa-pause"></i> 暂停
+                        </button>
+                        <button class="btn btn-reset" id="reset-btn">
+                            <i class="fas fa-redo"></i> 重置
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3><i class="fas fa-arrow-trend-up"></i> J型曲线（细菌指数分裂）</h3>
+                    <div class="control-item">
+                        <label>初始细菌数量 (CFU/mL)</label>
+                        <input type="range" id="j-init" min="10" max="100" step="5" value="50">
+                        <span class="param-value" id="j-init-val">50</span>
+                    </div>
+                    <div class="control-item">
+                        <label>分裂倍率 (λ，20分钟分裂1次)</label>
+                        <input type="range" id="lambda" min="1.8" max="2.2" step="0.05" value="2.0">
+                        <span class="param-value" id="lambda-val">2.0</span>
+                    </div>
+                    <div class="control-item">
+                        <label>减速期开始步数 (默认20步=400分钟)</label>
+                        <input type="range" id="decay-step" min="15" max="25" step="1" value="20">
+                        <span class="param-value" id="decay-step-val">20</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间图表区域 -->
+            <div class="chart-panel">
+                <!-- 新增的图表控制按钮（排序+显示/隐藏） -->
+                <div class="chart-controls">
+                    <div class="chart-order-controls">
+                        <button class="chart-order-btn" id="move-s-up"><i class="fas fa-arrow-up"></i>S型上移</button>
+                        <button class="chart-order-btn" id="move-s-down"><i class="fas fa-arrow-down"></i>S型下移</button>
+                        <button class="chart-order-btn" id="move-j-up"><i class="fas fa-arrow-up"></i>J型上移</button>
+                        <button class="chart-order-btn" id="move-j-down"><i class="fas fa-arrow-down"></i>J型下移</button>
+                        <button class="chart-order-btn" id="move-mix-up"><i class="fas fa-arrow-up"></i>混合上移</button>
+                        <button class="chart-order-btn" id="move-mix-down"><i class="fas fa-arrow-down"></i>混合下移</button>
+                    </div>
+                    <div class="chart-display-controls">
+                        <button class="chart-display-btn" id="toggle-s-chart"><i class="fas fa-eye"></i>显示/隐藏S型</button>
+                        <button class="chart-display-btn" id="toggle-j-chart"><i class="fas fa-eye"></i>显示/隐藏J型</button>
+                        <button class="chart-display-btn" id="toggle-mix-chart"><i class="fas fa-eye"></i>显示/隐藏混合</button>
+                    </div>
+                </div>
+                
+                <div class="charts-container" id="charts-container">
+                    <div id="s-chart" class="chart-item" data-chart="s"></div>
+                    <div id="j-chart" class="chart-item" data-chart="j"></div>
+                    <div id="mix-chart" class="chart-item" data-chart="mix"></div>
+                </div>
+                <div class="status-bar">
+                    <span>当前培养时间: <span class="current-step" id="current-step">0</span> 步（<span id="current-minute">0</span> 分钟）/ <span id="status-max-step">30</span> 步（600分钟）</span>
+                    <span>最后更新: <span id="update-time">2025-12-05 10:00:00</span></span>
+                </div>
+            </div>
+
+            <!-- 右侧控制面板：S型参数 + 环境调节 -->
+            <div class="control-panel-right">
+                <div class="control-group">
+                    <h3><i class="fas fa-arrow-trend-down"></i> S型曲线（细菌有限培养）</h3>
+                    <div class="control-item">
+                        <label>初始细菌数量 (CFU/mL)</label>
+                        <input type="range" id="s-init" min="10" max="100" step="5" value="50">
+                        <span class="param-value" id="s-init-val">50</span>
+                    </div>
+                    <div class="control-item">
+                        <label>内禀增长率 (r，每20分钟)</label>
+                        <input type="range" id="r" min="0.5" max="1.2" step="0.05" value="0.8">
+                        <span class="param-value" id="r-val">0.8</span>
+                    </div>
+                    <div class="control-item">
+                        <label>基础环境容纳量 (K，CFU/mL)</label>
+                        <input type="range" id="k-base" min="100000" max="1000000" step="50000" value="500000">
+                        <span class="param-value" id="k-base-val">500000</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3><i class="fas fa-flask"></i> 培养环境调节</h3>
+                    <div class="control-item">
+                        <label>培养基营养充足度 (%)</label>
+                        <input type="range" id="food" min="0" max="100" step="5" value="90">
+                        <span class="param-value" id="food-val">90</span>
+                    </div>
+                    <div class="control-item">
+                        <label>代谢废物积累量 (%)</label>
+                        <input type="range" id="predator" min="0" max="100" step="5" value="10">
+                        <span class="param-value" id="predator-val">10</span>
+                    </div>
+                    <div class="control-item">
+                        <label>实际承载量 (动态计算，CFU/mL)</label>
+                        <span class="param-value" id="k-real-val">495000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化三个ECharts实例
+        let sChart, jChart, mixChart;
+        // 图表显示状态
+        let chartVisible = {
+            s: true,
+            j: true,
+            mix: true
+        };
+        window.addEventListener('DOMContentLoaded', function() {
+            sChart = echarts.init(document.getElementById('s-chart'));
+            jChart = echarts.init(document.getElementById('j-chart'));
+            mixChart = echarts.init(document.getElementById('mix-chart'));
+        });
+        
+        // 全局变量
+        let animationTimer = null;
+        let isPlaying = false;
+        let currentStep = 0;
+        let maxStep = 30;
+        
+        // 参数默认值
+        let params = {
+            speed: 300,
+            jInit: 50,
+            lambda: 2.0,
+            decayStartStep: 20, 
+            decayFactor: 0.99,  // 进一步弱化衰减因子，几乎不衰减
+            sInit: 50,
+            r: 0.8,
+            kBase: 500000,
+            food: 90,
+            predator: 10,
+            kReal: 495000
+        };
+
+        // 绑定DOM元素
+        const elements = {
+            speed: document.getElementById('speed'),
+            speedVal: document.getElementById('speed-val'),
+            playBtn: document.getElementById('play-btn'),
+            pauseBtn: document.getElementById('pause-btn'),
+            resetBtn: document.getElementById('reset-btn'),
+            timeStep: document.getElementById('time-step'),
+            timeStepVal: document.getElementById('time-step-val'),
+            stepBack: document.getElementById('step-back'),
+            stepForward: document.getElementById('step-forward'),
+            maxStepVal: document.getElementById('max-step-val'),
+            statusMaxStep: document.getElementById('status-max-step'),
+            cultivateTime: document.getElementById('cultivate-time'),
+            currentMinute: document.getElementById('current-minute'),
+            jInit: document.getElementById('j-init'),
+            jInitVal: document.getElementById('j-init-val'),
+            lambda: document.getElementById('lambda'),
+            lambdaVal: document.getElementById('lambda-val'),
+            decayStep: document.getElementById('decay-step'),
+            decayStepVal: document.getElementById('decay-step-val'),
+            sInit: document.getElementById('s-init'),
+            sInitVal: document.getElementById('s-init-val'),
+            r: document.getElementById('r'),
+            rVal: document.getElementById('r-val'),
+            kBase: document.getElementById('k-base'),
+            kBaseVal: document.getElementById('k-base-val'),
+            food: document.getElementById('food'),
+            foodVal: document.getElementById('food-val'),
+            predator: document.getElementById('predator'),
+            predatorVal: document.getElementById('predator-val'),
+            kRealVal: document.getElementById('k-real-val'),
+            currentStep: document.getElementById('current-step'),
+            updateTime: document.getElementById('update-time'),
+            chartsContainer: document.getElementById('charts-container'),
+            // 图表排序按钮
+            moveSUp: document.getElementById('move-s-up'),
+            moveSDown: document.getElementById('move-s-down'),
+            moveJUp: document.getElementById('move-j-up'),
+            moveJDown: document.getElementById('move-j-down'),
+            moveMixUp: document.getElementById('move-mix-up'),
+            moveMixDown: document.getElementById('move-mix-down'),
+            // 图表显示/隐藏按钮
+            toggleSChart: document.getElementById('toggle-s-chart'),
+            toggleJChart: document.getElementById('toggle-j-chart'),
+            toggleMixChart: document.getElementById('toggle-mix-chart')
+        };
+
+        // 工具函数：安全格式化数值
+        function formatNumber(num, type = 'int') {
+            if (isNaN(num) || !isFinite(num)) {
+                return type === 'int' ? '0' : '0.00';
+            }
+            if (type === 'int') {
+                // 超大数缩放显示，避免科学计数法
+                if (num >= 100000000) {
+                    return `${(num / 100000000).toFixed(2)}亿`;
+                } else if (num >= 10000) {
+                    return `${(num / 10000).toFixed(1)}万`;
+                }
+                return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+            if (type === 'float1') {
+                return parseFloat(num).toFixed(1);
+            }
+            if (type === 'float2') {
+                return parseFloat(num).toFixed(2);
+            }
+            return num.toString();
+        }
+
+        // 工具函数：安全计算指数（避免溢出）
+        function safePow(base, exponent) {
+            // 对数变换：a^b = e^(b*ln(a))，避免大数直接计算
+            const lnBase = Math.log(base);
+            const product = exponent * lnBase;
+            // 限制指数范围，防止e^product溢出
+            if (product > 709) { // Math.exp(709) ≈ 1e308（JS最大数值）
+                return Math.exp(709);
+            }
+            return Math.exp(product);
+        }
+
+        // 初始化时间步长显示
+        elements.maxStepVal.textContent = maxStep;
+        elements.statusMaxStep.textContent = maxStep;
+        elements.timeStep.max = maxStep;
+        elements.cultivateTime.textContent = '0';
+        elements.currentMinute.textContent = '0';
+        elements.decayStepVal.textContent = formatNumber(params.decayStartStep, 'int');
+
+        // 计算实际承载量
+        function calculateRealK() {
+            try {
+                const foodFactor = params.food / 100;
+                const wasteFactor = 1 - (params.predator / 100);
+                params.kReal = Math.round(params.kBase * foodFactor * wasteFactor * 1.1);
+                params.kReal = Math.max(100000, Math.min(1000000, params.kReal));
+                elements.kRealVal.textContent = formatNumber(params.kReal, 'int');
+            } catch (e) {
+                console.error('计算实际承载量出错:', e);
+                params.kReal = 495000;
+                elements.kRealVal.textContent = '495,000';
+            }
+        }
+
+        // 生成X轴时间标签
+        function generateXAxisLabels(tMax) {
+            const labels = [];
+            for (let t = 0; t <= tMax; t++) {
+                const minutes = t * 20;
+                if (minutes < 60) {
+                    labels.push(`${minutes}min`);
+                } else {
+                    const hours = Math.floor(minutes / 60);
+                    const remainMinutes = minutes % 60;
+                    labels.push(remainMinutes === 0 ? `${hours}h` : `${hours}h${remainMinutes}min`);
+                }
+            }
+            return labels;
+        }
+
+        // 彻底修复J型曲线生成逻辑：永不停止增长，仅放缓
+        function generateJData(tMax) {
+            const data = [];
+            const lagPhaseSteps = 3; 
+            const logPhaseLambda = params.lambda;
+            const decayStartStep = params.decayStartStep;
+            const decayFactor = params.decayFactor;
+
+            try {
+                // 逐步计算，避免直接大数指数（核心修复）
+                let currentValue = params.jInit;
+                data.push(Math.round(currentValue));
+
+                for (let t = 1; t <= tMax; t++) {
+                    let growthRate;
+                    if (t <= lagPhaseSteps) {
+                        // 延迟期：增长缓慢（分裂倍率×0.5）
+                        growthRate = logPhaseLambda * 0.5;
+                    } else if (t < decayStartStep) {
+                        // 对数期：纯指数增长
+                        growthRate = logPhaseLambda;
+                    } else {
+                        // 减速期：增长倍率缓慢下降，但始终>1（永不停止）
+                        const decay = Math.pow(decayFactor, t - decayStartStep);
+                        // 增长倍率范围：1.05 ~ logPhaseLambda（确保始终增长）
+                        growthRate = 1.05 + (logPhaseLambda - 1.05) * decay;
+                    }
+
+                    // 逐步累加增长，避免指数溢出
+                    currentValue *= growthRate;
+                    // 移除严格上限，仅做超大数保护
+                    currentValue = Math.min(currentValue, Math.pow(10, 12)); // 1万亿上限，足够大
+                    data.push(Math.round(currentValue));
+                }
+            } catch (e) {
+                console.error('生成J型数据出错:', e);
+                // 降级方案：线性增长
+                for (let t = 0; t <= tMax; t++) {
+                    data.push(params.jInit * Math.pow(1.5, t));
+                }
+            }
+            return data;
+        }
+
+        // 生成S型曲线数据
+        function generateSData(tMax) {
+            const data = [params.sInit];
+            try {
+                for (let t = 1; t <= tMax; t++) {
+                    const prev = data[t-1];
+                    const growthRate = Math.max(0, Math.min(params.r, 2));
+                    const growthFactor = 1 + growthRate * (1 - Math.min(prev / params.kReal, 1));
+                    const next = prev * growthFactor;
+                    data.push(Math.min(Math.round(next), Math.round(params.kReal * 1.05)));
+                }
+            } catch (e) {
+                console.error('生成S型数据出错:', e);
+                for (let t = 1; t <= tMax; t++) {
+                    data.push(params.sInit * t);
+                }
+            }
+            return data;
+        }
+
+        // 更新数值标签（J型实时数量、S型K值）
+        function updateValueLabels() {
+            // 移除旧标签
+            document.querySelectorAll('.chart-value-label').forEach(el => el.remove());
+            
+            if (!chartVisible.j && !chartVisible.s && !chartVisible.mix) return;
+            
+            const jData = generateJData(currentStep);
+            const currentJValue = jData[currentStep];
+            
+            // J型曲线数值标签
+            if (chartVisible.j && jChart) {
+                const jChartDom = document.getElementById('j-chart');
+                const jChartRect = jChartDom.getBoundingClientRect();
+                const jLabel = document.createElement('div');
+                jLabel.className = 'chart-value-label';
+                jLabel.textContent = `当前数量: ${formatNumber(currentJValue)} CFU/mL`;
+                jLabel.style.left = `${jChartRect.left + 20}px`;
+                jLabel.style.top = `${jChartRect.top + 20}px`;
+                document.body.appendChild(jLabel);
+            }
+            
+            // S型曲线K值标签
+            if (chartVisible.s && sChart) {
+                const sChartDom = document.getElementById('s-chart');
+                const sChartRect = sChartDom.getBoundingClientRect();
+                const sLabel = document.createElement('div');
+                sLabel.className = 'chart-value-label';
+                sLabel.textContent = `K值(实际承载量): ${formatNumber(params.kReal)} CFU/mL`;
+                sLabel.style.left = `${sChartRect.left + 20}px`;
+                sLabel.style.top = `${sChartRect.top + 20}px`;
+                document.body.appendChild(sLabel);
+            }
+            
+            // 混合图表数值标签
+            if (chartVisible.mix && mixChart) {
+                const mixChartDom = document.getElementById('mix-chart');
+                const mixChartRect = mixChartDom.getBoundingClientRect();
+                const mixLabel = document.createElement('div');
+                mixLabel.className = 'chart-value-label';
+                mixLabel.textContent = `J型: ${formatNumber(currentJValue)} | S型K值: ${formatNumber(params.kReal)} CFU/mL`;
+                mixLabel.style.left = `${mixChartRect.left + 20}px`;
+                mixLabel.style.top = `${mixChartRect.top + 20}px`;
+                document.body.appendChild(mixLabel);
+            }
+        }
+
+        // 更新所有图表（核心：基于当前参数实时渲染）
+        function updateCharts(tMax = currentStep) {
+            // 重新初始化图表实例（解决排序后失效问题）
+            if (!sChart || sChart.isDisposed()) sChart = echarts.init(document.getElementById('s-chart'));
+            if (!jChart || jChart.isDisposed()) jChart = echarts.init(document.getElementById('j-chart'));
+            if (!mixChart || mixChart.isDisposed()) mixChart = echarts.init(document.getElementById('mix-chart'));
+            
+            currentStep = Math.min(tMax, maxStep);
+            const currentMinute = currentStep * 20;
+            
+            // 更新DOM显示
+            elements.timeStep.value = formatNumber(currentStep, 'int');
+            elements.timeStepVal.textContent = formatNumber(currentStep, 'int');
+            elements.currentStep.textContent = formatNumber(currentStep, 'int');
+            elements.currentMinute.textContent = formatNumber(currentMinute, 'int');
+            elements.cultivateTime.textContent = formatNumber(currentMinute, 'int');
+            
+            // 基于最新参数生成数据
+            const jData = generateJData(currentStep);
+            const sData = generateSData(currentStep);
+            const kData = Array(currentStep + 1).fill(params.kReal);
+            const xAxisLabels = generateXAxisLabels(currentStep);
+            
+            const jMax = Math.max(...jData, 1) * 1.1;
+            const sMax = Math.max(...sData, 1) * 1.1;
+            // 混合图表Y轴最大值优化：取J/S最大值和K值的较大者
+            const mixMax = Math.max(Math.max(...jData, ...sData), params.kReal) * 1.2;
+
+            // 计算J型曲线Y轴刻度（固定5个刻度）
+            const jTickCount = 5; // 固定5个刻度
+            const jTickInterval = jMax / (jTickCount - 1); // 计算刻度间隔
+            // 混合图表Y轴刻度优化：固定6个刻度，适配双曲线
+            const mixTickCount = 6;
+            const mixTickInterval = mixMax / (mixTickCount - 1);
+
+            // 通用配置项
+            const commonConfig = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'cross' },
+                    formatter: function(params) {
+                        const step = params[0].dataIndex;
+                        const minute = step * 20;
+                        let timeLabel = minute < 60 ? `${minute}分钟` : `${Math.floor(minute/60)}小时${minute%60}分钟`;
+                        let res = `培养时间: ${timeLabel}`;
+                        params.forEach(item => {
+                            res += `<br/>${item.seriesName}: ${formatNumber(item.value, 'int')} CFU/mL`;
+                        });
+                        return res;
+                    }
+                },
+                grid: {
+                    left: '5%',
+                    right: '5%',
+                    bottom: '10%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    name: '培养时间',
+                    nameLocation: 'middle',
+                    nameGap: 20,
+                    data: xAxisLabels,
+                    axisLabel: {
+                        interval: Math.max(1, Math.floor(currentStep/8)),
+                        rotate: 20,
+                        fontSize: 11
+                    }
+                },
+                animationDuration: 300
+            };
+
+            // S型曲线配置
+            const sOption = {
+                ...commonConfig,
+                title: {
+                    text: `S型增长曲线 (K值/实际承载量: ${formatNumber(params.kReal, 'int')} CFU/mL)`,
+                    left: 'center',
+                    textStyle: { fontSize: 14, fontWeight: 'bold' }
+                },
+                legend: {
+                    data: ['S型曲线（有限培养）', '实际承载量(K值)'],
+                    top: 5,
+                    textStyle: { fontSize: 11 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '细菌数量 (CFU/mL)',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    min: 0,
+                    max: sMax,
+                    axisLabel: {
+                        formatter: function(value) {
+                            return formatNumber(value, 'int');
+                        },
+                        fontSize: 11
+                    }
+                },
+                series: [
+                    {
+                        name: 'S型曲线（有限培养）',
+                        type: 'line',
+                        data: sData,
+                        symbol: 'circle',
+                        symbolSize: 4,
+                        lineStyle: { width: 2 },
+                        itemStyle: { color: '#4ecdc4' },
+                        emphasis: { symbolSize: 8 },
+                        // 实时显示数值标签
+                        label: {
+                            show: true,
+                            position: 'top',
+                            fontSize: 10,
+                            formatter: function(params) {
+                                return formatNumber(params.value);
+                            }
+                        }
+                    },
+                    {
+                        name: '实际承载量(K值)',
+                        type: 'line',
+                        data: kData,
+                        symbol: 'none',
+                        lineStyle: { width: 2, type: 'dashed' },
+                        itemStyle: { color: '#95a5a6' },
+                        emphasis: { lineStyle: { width: 3 } },
+                        label: {
+                            show: true,
+                            position: 'end',
+                            fontSize: 10,
+                            formatter: `K=${formatNumber(params.kReal)}`
+                        }
+                    }
+                ]
+            };
+
+            // J型曲线配置（强制5个Y轴刻度）
+            const jOption = {
+                ...commonConfig,
+                title: {
+                    text: 'J型分段增长曲线（延迟期→对数期→减速期）',
+                    left: 'center',
+                    textStyle: { fontSize: 14, fontWeight: 'bold' }
+                },
+                legend: {
+                    data: ['J型曲线（分段增长）'],
+                    top: 5,
+                    textStyle: { fontSize: 11 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '细菌数量 (CFU/mL)',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    min: 0,
+                    max: jMax,
+                    interval: jTickInterval, // 强制刻度间隔
+                    axisLabel: {
+                        formatter: function(value) {
+                            return formatNumber(value, 'int');
+                        },
+                        fontSize: 11
+                    },
+                    // 确保刻度数量为5个，补充刻度线
+                    splitNumber: jTickCount
+                },
+                series: [
+                    {
+                        name: 'J型曲线（分段增长）',
+                        type: 'line',
+                        data: jData,
+                        symbol: 'circle',
+                        symbolSize: 4,
+                        lineStyle: { width: 2 },
+                        itemStyle: { color: '#ff6b6b' },
+                        emphasis: { symbolSize: 8 },
+                        // 实时显示数值标签
+                        label: {
+                            show: true,
+                            position: 'top',
+                            fontSize: 10,
+                            formatter: function(params) {
+                                return formatNumber(params.value);
+                            }
+                        }
+                    }
+                ]
+            };
+
+            // 混合曲线配置（核心修复）
+            const mixOption = {
+                ...commonConfig,
+                title: {
+                    text: `J型 & S型增长曲线对比 (K值: ${formatNumber(params.kReal, 'int')} CFU/mL)`,
+                    left: 'center',
+                    textStyle: { fontSize: 14, fontWeight: 'bold' }
+                },
+                legend: {
+                    data: ['J型曲线（分段增长）', 'S型曲线（有限培养）', '实际承载量(K值)'],
+                    top: 5,
+                    textStyle: { fontSize: 11 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '细菌数量 (CFU/mL)',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    min: 0,
+                    max: mixMax,
+                    interval: mixTickInterval, // 混合图表专属刻度间隔
+                    splitNumber: mixTickCount,  // 固定6个刻度，避免拥挤
+                    axisLabel: {
+                        formatter: function(value) {
+                            return formatNumber(value, 'int');
+                        },
+                        fontSize: 11
+                    }
+                },
+                series: [
+                    {
+                        name: 'J型曲线（分段增长）',
+                        type: 'line',
+                        data: jData,
+                        symbol: 'circle',
+                        symbolSize: 4,
+                        lineStyle: { width: 2 },
+                        itemStyle: { color: '#ff6b6b' },
+                        emphasis: { symbolSize: 8 },
+                        // J型数值标签位置调整：避免重叠
+                        label: {
+                            show: true,
+                            position: 'top',
+                            fontSize: 9, // 缩小字号
+                            formatter: function(params) {
+                                return formatNumber(params.value);
+                            },
+                            // 隐藏密集数据点标签，避免重叠
+                            showMinLabel: false,
+                            showMaxLabel: true
+                        }
+                    },
+                    {
+                        name: 'S型曲线（有限培养）',
+                        type: 'line',
+                        data: sData,
+                        symbol: 'circle',
+                        symbolSize: 4,
+                        lineStyle: { width: 2 },
+                        itemStyle: { color: '#4ecdc4' },
+                        emphasis: { symbolSize: 8 },
+                        // S型数值标签位置调整：与J型错开
+                        label: {
+                            show: true,
+                            position: 'bottom',
+                            fontSize: 9, // 缩小字号
+                            formatter: function(params) {
+                                return formatNumber(params.value);
+                            },
+                            // 隐藏密集数据点标签，避免重叠
+                            showMinLabel: false,
+                            showMaxLabel: true
+                        }
+                    },
+                    {
+                        name: '实际承载量(K值)',
+                        type: 'line',
+                        data: kData,
+                        symbol: 'none',
+                        lineStyle: { width: 2, type: 'dashed' },
+                        itemStyle: { color: '#95a5a6' },
+                        emphasis: { lineStyle: { width: 3 } },
+                        label: {
+                            show: true,
+                            position: 'end',
+                            fontSize: 10,
+                            formatter: `K=${formatNumber(params.kReal)}`
+                        }
+                    }
+                ],
+                // 强制刷新动画，解决更新滞后问题
+                animationDurationUpdate: 200,
+                animationEasingUpdate: 'linear'
+            };
+
+            // 根据显示状态更新图表（强制刷新）
+            if (chartVisible.s) {
+                sChart.setOption(sOption, true); // 第二个参数true强制刷新
+                document.getElementById('s-chart').style.display = 'block';
+            } else {
+                document.getElementById('s-chart').style.display = 'none';
+            }
+            
+            if (chartVisible.j) {
+                jChart.setOption(jOption, true);
+                document.getElementById('j-chart').style.display = 'block';
+            } else {
+                document.getElementById('j-chart').style.display = 'none';
+            }
+            
+            if (chartVisible.mix) {
+                mixChart.setOption(mixOption, true); // 混合图表强制刷新
+                document.getElementById('mix-chart').style.display = 'block';
+            } else {
+                document.getElementById('mix-chart').style.display = 'none';
+            }
+            
+            elements.updateTime.textContent = new Date().toLocaleString();
+            
+            // 更新数值标签
+            updateValueLabels();
+        }
+
+        // 切换图表显示/隐藏状态
+        function toggleChartVisibility(chartType) {
+            chartVisible[chartType] = !chartVisible[chartType];
+            
+            // 更新按钮样式
+            const btnId = `toggle-${chartType}-chart`;
+            const btn = document.getElementById(btnId);
+            if (chartVisible[chartType]) {
+                btn.classList.remove('hidden');
+                btn.innerHTML = `<i class="fas fa-eye"></i>显示/隐藏${chartType.toUpperCase()}型`;
+            } else {
+                btn.classList.add('hidden');
+                btn.innerHTML = `<i class="fas fa-eye-slash"></i>显示/隐藏${chartType.toUpperCase()}型`;
+            }
+            
+            // 更新图表显示
+            updateCharts(currentStep);
+        }
+
+        // 播放动画：基于最新参数从0步开始模拟
+        function playAnimation() {
+            if (isPlaying) return;
+            isPlaying = true;
+            currentStep = 0;
+            updateCharts(0);
+            if (animationTimer) clearInterval(animationTimer);
+            animationTimer = setInterval(() => {
+                currentStep++;
+                if (currentStep > maxStep) {
+                    clearInterval(animationTimer);
+                    isPlaying = false;
+                    return;
+                }
+                updateCharts(currentStep);
+            }, params.speed);
+        }
+
+        // 暂停动画
+        function pauseAnimation() {
+            clearInterval(animationTimer);
+            isPlaying = false;
+        }
+
+        // 重置模拟（仅重置步数）
+        function resetSimulation() {
+            pauseAnimation();
+            currentStep = 0;
+            elements.timeStep.value = '0';
+            elements.timeStepVal.textContent = '0';
+            elements.currentStep.textContent = '0';
+            elements.cultivateTime.textContent = '0';
+            elements.currentMinute.textContent = '0';
+            updateCharts(0);
+        }
+
+        // 完全重置所有参数
+        function resetAll() {
+            pauseAnimation();
+            params = {
+                speed: 300,
+                jInit: 50,
+                lambda: 2.0,
+                decayStartStep: 20,
+                decayFactor: 0.99, // 保持弱衰减
+                sInit: 50,
+                r: 0.8,
+                kBase: 500000,
+                food: 90,
+                predator: 10,
+                kReal: 495000
+            };
+
+            // 重置DOM值
+            elements.speed.value = '300';
+            elements.speedVal.textContent = '300';
+            elements.jInit.value = '50';
+            elements.jInitVal.textContent = '50';
+            elements.lambda.value = '2.0';
+            elements.lambdaVal.textContent = '2.0';
+            elements.decayStep.value = '20';
+            elements.decayStepVal.textContent = '20';
+            elements.sInit.value = '50';
+            elements.sInitVal.textContent = '50';
+            elements.r.value = '0.8';
+            elements.rVal.textContent = '0.80';
+            elements.kBase.value = '500000';
+            elements.kBaseVal.textContent = '500,000';
+            elements.food.value = '90';
+            elements.foodVal.textContent = '90';
+            elements.predator.value = '10';
+            elements.predatorVal.textContent = '10';
+            elements.kRealVal.textContent = '495,000';
+            
+            // 重置图表显示状态
+            chartVisible = {
+                s: true,
+                j: true,
+                mix: true
+            };
+            elements.toggleSChart.classList.remove('hidden');
+            elements.toggleJChart.classList.remove('hidden');
+            elements.toggleMixChart.classList.remove('hidden');
+            elements.toggleSChart.innerHTML = '<i class="fas fa-eye"></i>显示/隐藏S型';
+            elements.toggleJChart.innerHTML = '<i class="fas fa-eye"></i>显示/隐藏J型';
+            elements.toggleMixChart.innerHTML = '<i class="fas fa-eye"></i>显示/隐藏混合';
+            
+            resetSimulation();
+        }
+
+        // 图表排序功能（修复排序后图表失效问题）
+        function moveChartUp(chartId) {
+            const container = elements.chartsContainer;
+            const chartElement = document.getElementById(chartId);
+            const prevSibling = chartElement.previousElementSibling;
+            
+            if (prevSibling) {
+                container.insertBefore(chartElement, prevSibling);
+                // 延迟更新图表，确保DOM重排完成
+                setTimeout(() => {
+                    if (sChart) sChart.resize();
+                    if (jChart) jChart.resize();
+                    if (mixChart) mixChart.resize();
+                    updateCharts(currentStep);
+                }, 50);
+            }
+        }
+
+        function moveChartDown(chartId) {
+            const container = elements.chartsContainer;
+            const chartElement = document.getElementById(chartId);
+            const nextSibling = chartElement.nextElementSibling;
+            
+            if (nextSibling) {
+                container.insertBefore(nextSibling, chartElement);
+                // 延迟更新图表，确保DOM重排完成
+                setTimeout(() => {
+                    if (sChart) sChart.resize();
+                    if (jChart) jChart.resize();
+                    if (mixChart) mixChart.resize();
+                    updateCharts(currentStep);
+                }, 50);
+            }
+        }
+
+        // 参数修改处理：实时更新
+        function handleParamChange(type, domElement, paramKey) {
+            return function() {
+                try {
+                    let val = this.value;
+                    if (type === 'int') {
+                        val = parseInt(val);
+                        params[paramKey] = val;
+                        domElement.textContent = formatNumber(val, 'int');
+                    } else if (type === 'float1') {
+                        val = parseFloat(val);
+                        params[paramKey] = val;
+                        domElement.textContent = formatNumber(val, 'float1');
+                    } else if (type === 'float2') {
+                        val = parseFloat(val);
+                        params[paramKey] = val;
+                        domElement.textContent = formatNumber(val, 'float2');
+                    }
+                    if (['kBase', 'food', 'predator'].includes(paramKey)) {
+                        calculateRealK();
+                    }
+                    updateCharts(currentStep);
+                } catch (e) {
+                    console.error(`参数${paramKey}修改出错:`, e);
+                    domElement.textContent = paramKey === 'lambda' ? '2.0' : paramKey === 'r' ? '0.80' : '50';
+                }
+            };
+        }
+
+        // 绑定事件
+        function bindEvents() {
+            elements.playBtn.addEventListener('click', playAnimation);
+            elements.pauseBtn.addEventListener('click', pauseAnimation);
+            elements.resetBtn.addEventListener('click', resetAll);
+            
+            elements.speed.addEventListener('input', function() {
+                const val = parseInt(this.value);
+                params.speed = val;
+                elements.speedVal.textContent = formatNumber(val, 'int');
+                if (isPlaying) {
+                    pauseAnimation();
+                    playAnimation();
+                }
+            });
+
+            elements.timeStep.addEventListener('input', function() {
+                if (isPlaying) pauseAnimation();
+                const val = parseInt(this.value);
+                currentStep = val;
+                const currentMinute = currentStep * 20;
+                elements.timeStepVal.textContent = formatNumber(val, 'int');
+                elements.currentStep.textContent = formatNumber(val, 'int');
+                elements.currentMinute.textContent = formatNumber(currentMinute, 'int');
+                elements.cultivateTime.textContent = formatNumber(currentMinute, 'int');
+                updateCharts(currentStep);
+            });
+
+            elements.stepBack.addEventListener('click', function() {
+                if (isPlaying) pauseAnimation();
+                currentStep = Math.max(0, currentStep - 1);
+                const currentMinute = currentStep * 20;
+                elements.timeStep.value = formatNumber(currentStep, 'int');
+                elements.timeStepVal.textContent = formatNumber(currentStep, 'int');
+                elements.currentMinute.textContent = formatNumber(currentMinute, 'int');
+                updateCharts(currentStep);
+            });
+
+            elements.stepForward.addEventListener('click', function() {
+                if (isPlaying) pauseAnimation();
+                currentStep = Math.min(maxStep, currentStep + 1);
+                const currentMinute = currentStep * 20;
+                elements.timeStep.value = formatNumber(currentStep, 'int');
+                elements.timeStepVal.textContent = formatNumber(currentStep, 'int');
+                elements.currentMinute.textContent = formatNumber(currentMinute, 'int');
+                updateCharts(currentStep);
+            });
+            
+            // J型参数绑定
+            elements.jInit.addEventListener('input', handleParamChange('int', elements.jInitVal, 'jInit'));
+            elements.lambda.addEventListener('input', handleParamChange('float1', elements.lambdaVal, 'lambda'));
+            elements.decayStep.addEventListener('input', handleParamChange('int', elements.decayStepVal, 'decayStartStep'));
+            
+            // S型参数绑定
+            elements.sInit.addEventListener('input', handleParamChange('int', elements.sInitVal, 'sInit'));
+            elements.r.addEventListener('input', handleParamChange('float2', elements.rVal, 'r'));
+            elements.kBase.addEventListener('input', handleParamChange('int', elements.kBaseVal, 'kBase'));
+            
+            // 环境参数绑定
+            elements.food.addEventListener('input', handleParamChange('int', elements.foodVal, 'food'));
+            elements.predator.addEventListener('input', handleParamChange('int', elements.predatorVal, 'predator'));
+
+            // 图表排序事件绑定
+            elements.moveSUp.addEventListener('click', () => moveChartUp('s-chart'));
+            elements.moveSDown.addEventListener('click', () => moveChartDown('s-chart'));
+            elements.moveJUp.addEventListener('click', () => moveChartUp('j-chart'));
+            elements.moveJDown.addEventListener('click', () => moveChartDown('j-chart'));
+            elements.moveMixUp.addEventListener('click', () => moveChartUp('mix-chart'));
+            elements.moveMixDown.addEventListener('click', () => moveChartDown('mix-chart'));
+
+            // 图表显示/隐藏事件绑定
+            elements.toggleSChart.addEventListener('click', () => toggleChartVisibility('s'));
+            elements.toggleJChart.addEventListener('click', () => toggleChartVisibility('j'));
+            elements.toggleMixChart.addEventListener('click', () => toggleChartVisibility('mix'));
+
+            // 窗口自适应
+            window.addEventListener('resize', function() {
+                setTimeout(() => { // 延迟resize，避免频繁触发
+                    if (sChart) sChart.resize();
+                    if (jChart) jChart.resize();
+                    if (mixChart) mixChart.resize();
+                    updateValueLabels(); // 重新定位数值标签
+                }, 100);
+            });
+        }
+
+        // 初始化
+        function init() {
+            try {
+                calculateRealK();
+                bindEvents();
+                setTimeout(() => {
+                    updateCharts(0);
+                }, 100);
+            } catch (e) {
+                console.error('初始化出错:', e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
