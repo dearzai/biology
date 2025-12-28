@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鱼群增长预测 - AI智能教学工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 100, 0.08);
+        }
+        
+        h1 {
+            color: #0066cc;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .control-panel {
+            flex: 1;
+            min-width: 300px;
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 100, 0.08);
+        }
+        
+        .control-group {
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #0066cc;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e6f2ff;
+            font-size: 1.6rem;
+        }
+        
+        .parameter {
+            margin-bottom: 25px;
+        }
+        
+        .parameter label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        .parameter-value {
+            color: #0066cc;
+            font-weight: bold;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .slider-icon {
+            width: 30px;
+            text-align: center;
+            color: #0066cc;
+            font-size: 1.2rem;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 10px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: linear-gradient(to right, #cce6ff, #0066cc);
+            border-radius: 5px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #0066cc;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 34px;
+            transition: .4s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: .4s;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #0066cc;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+        
+        .visualization {
+            flex: 2;
+            min-width: 500px;
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 100, 0.08);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+        
+        .prediction-result {
+            background-color: #f0f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .result-value {
+            font-size: 2rem;
+            color: #0066cc;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .stability-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            gap: 10px;
+        }
+        
+        .stability-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ff9900;
+        }
+        
+        .stable .stability-dot {
+            background-color: #00cc66;
+        }
+        
+        .group-activity {
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 100, 0.08);
+            margin-top: 30px;
+        }
+        
+        .group-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .group {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #f8fbff;
+            border: 2px solid #e6f2ff;
+        }
+        
+        .group-name {
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s;
+            display: block;
+            margin: 20px auto;
+        }
+        
+        button:hover {
+            background-color: #0052a3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0, 0, 100, 0.1);
+        }
+        
+        .explanation {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            border-left: 5px solid #0066cc;
+        }
+        
+        .explanation h3 {
+            color: #0066cc;
+            margin-bottom: 10px;
+        }
+        
+        .explanation p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .visualization {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>鱼群增长预测 - AI智能教学工具</h1>
+            <p class="subtitle">教师展示鱼缸初始状态（5条鱼），学生使用AI预测工具，滑动调节参数：食物丰富度、空间大小、有无天敌。AI实时生成不同条件下3个月后的鱼群数量预测。</p>
+        </header>
+        
+        <div class="content">
+            <div class="control-panel">
+                <h2>环境参数调节</h2>
+                
+                <div class="control-group">
+                    <div class="parameter">
+                        <label>
+                            <span>食物丰富度</span>
+                            <span class="parameter-value" id="food-value">50%</span>
+                        </label>
+                        <div class="slider-container">
+                            <div class="slider-icon">🍽️</div>
+                            <input type="range" id="food-slider" min="10" max="100" value="50" step="1">
+                            <div class="slider-icon">🍲</div>
+                        </div>
+                        <p class="parameter-desc">食物越丰富，鱼群增长越快，但过度丰富可能导致资源浪费。</p>
+                    </div>
+                    
+                    <div class="parameter">
+                        <label>
+                            <span>空间大小</span>
+                            <span class="parameter-value" id="space-value">50%</span>
+                        </label>
+                        <div class="slider-container">
+                            <div class="slider-icon">🐟</div>
+                            <input type="range" id="space-slider" min="10" max="100" value="50" step="1">
+                            <div class="slider-icon">🐠🐠🐠</div>
+                        </div>
+                        <p class="parameter-desc">空间越大，容纳的鱼群数量上限越高，但资源分布可能更稀疏。</p>
+                    </div>
+                    
+                    <div class="parameter">
+                        <label>
+                            <span>有无天敌</span>
+                            <span class="parameter-value" id="predator-value">无天敌</span>
+                        </label>
+                        <div class="slider-container">
+                            <div class="slider-icon">😊</div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="predator-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <div class="slider-icon">🦈</div>
+                        </div>
+                        <p class="parameter-desc">天敌存在会抑制鱼群增长，但有助于维持生态系统平衡。</p>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h2>初始条件</h2>
+                    <div class="parameter">
+                        <label>
+                            <span>初始鱼群数量</span>
+                            <span class="parameter-value" id="initial-value">5 条</span>
+                        </label>
+                        <div class="slider-container">
+                            <div class="slider-icon">1️⃣</div>
+                            <input type="range" id="initial-slider" min="1" max="20" value="5" step="1">
+                            <div class="slider-icon">2️⃣0️⃣</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="reset-btn">重置为默认参数</button>
+            </div>
+            
+            <div class="visualization">
+                <h2>鱼群增长预测</h2>
+                <div class="chart-container">
+                    <canvas id="growth-chart"></canvas>
+                </div>
+                
+                <div class="prediction-result">
+                    <h3>3个月后预测结果</h3>
+                    <div class="result-value" id="prediction-result">25 条鱼</div>
+                    <div class="stability-indicator" id="stability-indicator">
+                        <div class="stability-dot"></div>
+                        <span>正在向稳定状态增长</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="group-activity">
+            <h2>课堂分组活动</h2>
+            <p>学生分组尝试，看哪组预测最接近"稳定状态"（点击"记录预测"保存当前设置）</p>
+            
+            <div class="group-controls">
+                <div class="group" id="group-a">
+                    <div class="group-name">第一组</div>
+                    <div>预测值: <span id="group-a-value">--</span> 条</div>
+                    <div>稳定度: <span id="group-a-stability">--</span></div>
+                    <div>参数: <span id="group-a-params">--</span></div>
+                </div>
+                
+                <div class="group" id="group-b">
+                    <div class="group-name">第二组</div>
+                    <div>预测值: <span id="group-b-value">--</span> 条</div>
+                    <div>稳定度: <span id="group-b-stability">--</span></div>
+                    <div>参数: <span id="group-b-params">--</span></div>
+                </div>
+                
+                <div class="group" id="group-c">
+                    <div class="group-name">第三组</div>
+                    <div>预测值: <span id="group-c-value">--</span> 条</div>
+                    <div>稳定度: <span id="group-c-stability">--</span></div>
+                    <div>参数: <span id="group-c-params">--</span></div>
+                </div>
+                
+                <div class="group" id="group-d">
+                    <div class="group-name">第四组</div>
+                    <div>预测值: <span id="group-d-value">--</span> 条</div>
+                    <div>稳定度: <span id="group-d-stability">--</span></div>
+                    <div>参数: <span id="group-d-params">--</span></div>
+                </div>
+            </div>
+            
+            <button id="record-btn">记录当前预测 (按组轮流)</button>
+            <button id="show-stable-btn">显示稳定状态参考值</button>
+        </div>
+        
+        <div class="explanation">
+            <h3>模型科学原理说明</h3>
+            <p>本AI预测工具基于种群生态学中的<strong>逻辑斯蒂增长模型(Logistic Growth Model)</strong>：</p>
+            <p>1. <strong>食物丰富度</strong>影响增长率(r值) - 食物越丰富，鱼群增长越快</p>
+            <p>2. <strong>空间大小</strong>决定环境容纳量(K值) - 空间越大，能容纳的最大鱼群数量越多</p>
+            <p>3. <strong>有无天敌</strong>影响死亡率 - 天敌存在会增加死亡率，抑制种群增长</p>
+            <p>模型公式：dN/dt = r × N × (1 - N/K) - 其中N为种群数量，t为时间，r为增长率，K为环境容纳量</p>
+            <p>"稳定状态"指种群数量达到环境容纳量(K值)附近，增长率为0的平衡状态。</p>
+        </div>
+    </div>
+
+    <script>
+        // 初始化变量
+        let currentGroup = 0;
+        let stableStateValue = 0;
+        let chart = null;
+        
+        // 获取DOM元素
+        const foodSlider = document.getElementById('food-slider');
+        const spaceSlider = document.getElementById('space-slider');
+        const predatorToggle = document.getElementById('predator-toggle');
+        const initialSlider = document.getElementById('initial-slider');
+        const resetBtn = document.getElementById('reset-btn');
+        const recordBtn = document.getElementById('record-btn');
+        const showStableBtn = document.getElementById('show-stable-btn');
+        
+        const foodValue = document.getElementById('food-value');
+        const spaceValue = document.getElementById('space-value');
+        const predatorValue = document.getElementById('predator-value');
+        const initialValue = document.getElementById('initial-value');
+        const predictionResult = document.getElementById('prediction-result');
+        const stabilityIndicator = document.getElementById('stability-indicator');
+        
+        // 种群增长模型参数
+        const modelParams = {
+            baseGrowthRate: 0.15, // 基础增长率
+            baseCarryingCapacity: 100, // 基础环境容纳量
+            predatorEffect: 0.4, // 天敌影响系数
+            timePeriod: 90 // 3个月的天数
+        };
+        
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('growth-chart').getContext('2d');
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: '鱼群数量预测',
+                            data: [],
+                            borderColor: '#0066cc',
+                            backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: '稳定状态',
+                            data: [],
+                            borderColor: '#00cc66',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '时间 (天)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '鱼群数量 (条)'
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 计算种群增长
+        function calculatePopulationGrowth(initialPop, food, space, hasPredator) {
+            // 计算增长率：基础增长率 * 食物影响
+            const growthRate = modelParams.baseGrowthRate * (food / 50);
+            
+            // 计算环境容纳量：基础容纳量 * 空间影响
+            const carryingCapacity = modelParams.baseCarryingCapacity * (space / 50);
+            
+            // 如果有天敌，降低增长率
+            const effectiveGrowthRate = hasPredator ? 
+                growthRate * (1 - modelParams.predatorEffect) : growthRate;
+            
+            // 使用逻辑斯蒂方程模拟增长
+            const populations = [initialPop];
+            const days = modelParams.timePeriod;
+            const timeLabels = ['初始'];
+            
+            for (let day = 1; day <= days; day++) {
+                const prevPop = populations[day - 1];
+                
+                // 逻辑斯蒂增长方程：dN/dt = r * N * (1 - N/K)
+                let change = effectiveGrowthRate * prevPop * (1 - prevPop / carryingCapacity);
+                
+                // 添加随机波动（环境随机性）
+                const randomEffect = 1 + (Math.random() - 0.5) * 0.1;
+                change *= randomEffect;
+                
+                // 确保种群数量不为负
+                const newPop = Math.max(0, prevPop + change);
+                populations.push(newPop);
+                
+                // 每10天记录一次时间标签
+                if (day % 10 === 0 || day === days) {
+                    timeLabels.push(`第${day}天`);
+                } else {
+                    timeLabels.push('');
+                }
+            }
+            
+            // 稳定状态值（环境容纳量）
+            stableStateValue = Math.round(carryingCapacity * 0.95); // 稳定状态通常是容纳量的95%左右
+            
+            return {
+                populations,
+                timeLabels,
+                growthRate: effectiveGrowthRate,
+                carryingCapacity,
+                finalPopulation: Math.round(populations[populations.length - 1])
+            };
+        }
+        
+        // 更新UI显示
+        function updateDisplay() {
+            const food = parseInt(foodSlider.value);
+            const space = parseInt(spaceSlider.value);
+            const hasPredator = predatorToggle.checked;
+            const initialPop = parseInt(initialSlider.value);
+            
+            // 更新参数显示
+            foodValue.textContent = `${food}%`;
+            spaceValue.textContent = `${space}%`;
+            predatorValue.textContent = hasPredator ? "有天敌" : "无天敌";
+            initialValue.textContent = `${initialPop} 条`;
+            
+            // 计算种群增长
+            const result = calculatePopulationGrowth(initialPop, food, space, hasPredator);
+            
+            // 更新预测结果
+            predictionResult.textContent = `${result.finalPopulation} 条鱼`;
+            
+            // 更新稳定性指示器
+            const stabilityDiff = Math.abs(result.finalPopulation - stableStateValue);
+            let stabilityText = "";
+            
+            if (stabilityDiff < 5) {
+                stabilityIndicator.className = "stability-indicator stable";
+                stabilityText = "已达到稳定状态";
+            } else if (stabilityDiff < 15) {
+                stabilityIndicator.className = "stability-indicator";
+                stabilityText = "接近稳定状态";
+            } else if (result.finalPopulation < stableStateValue) {
+                stabilityIndicator.className = "stability-indicator";
+                stabilityText = "正在向稳定状态增长";
+            } else {
+                stabilityIndicator.className = "stability-indicator";
+                stabilityText = "超过稳定状态，可能下降";
+            }
+            
+            stabilityIndicator.querySelector("span").textContent = stabilityText;
+            
+            // 更新图表
+            updateChart(result.populations, result.timeLabels, stableStateValue);
+        }
+        
+        // 更新图表
+        function updateChart(populations, timeLabels, stableValue) {
+            // 生成稳定状态线数据
+            const stableLineData = Array(populations.length).fill(stableValue);
+            
+            chart.data.labels = timeLabels;
+            chart.data.datasets[0].data = populations;
+            chart.data.datasets[1].data = stableLineData;
+            chart.update();
+        }
+        
+        // 记录当前预测到分组
+        function recordPrediction() {
+            const groups = ['a', 'b', 'c', 'd'];
+            const groupId = groups[currentGroup % 4];
+            
+            const food = parseInt(foodSlider.value);
+            const space = parseInt(spaceSlider.value);
+            const hasPredator = predatorToggle.checked;
+            const initialPop = parseInt(initialSlider.value);
+            
+            // 计算当前预测
+            const result = calculatePopulationGrowth(initialPop, food, space, hasPredator);
+            const stabilityDiff = Math.abs(result.finalPopulation - stableStateValue);
+            
+            // 确定稳定度评级
+            let stabilityRating = "";
+            if (stabilityDiff < 5) {
+                stabilityRating = "优秀 ★★★";
+            } else if (stabilityDiff < 10) {
+                stabilityRating = "良好 ★★";
+            } else if (stabilityDiff < 20) {
+                stabilityRating = "一般 ★";
+            } else {
+                stabilityRating = "待改进";
+            }
+            
+            // 更新分组显示
+            document.getElementById(`group-${groupId}-value`).textContent = result.finalPopulation;
+            document.getElementById(`group-${groupId}-stability`).textContent = stabilityRating;
+            document.getElementById(`group-${groupId}-params`).textContent = 
+                `食物:${food}% 空间:${space}% ${hasPredator ? "有天敌" : "无天敌"}`;
+            
+            // 高亮当前分组
+            document.querySelectorAll('.group').forEach(group => {
+                group.style.backgroundColor = '#f8fbff';
+                group.style.borderColor = '#e6f2ff';
+            });
+            
+            const currentGroupElement = document.getElementById(`group-${groupId}`);
+            currentGroupElement.style.backgroundColor = '#e6f7ff';
+            currentGroupElement.style.borderColor = '#0066cc';
+            
+            // 移到下一组
+            currentGroup++;
+            
+            // 显示记录成功消息
+            alert(`已记录第${Math.floor((currentGroup-1) % 4) + 1}组的预测结果！`);
+        }
+        
+        // 显示稳定状态参考值
+        function showStableState() {
+            const food = parseInt(foodSlider.value);
+            const space = parseInt(spaceSlider.value);
+            const hasPredator = predatorToggle.checked;
+            
+            // 计算环境容纳量
+            const carryingCapacity = modelParams.baseCarryingCapacity * (space / 50);
+            const stableValue = Math.round(carryingCapacity * 0.95);
+            
+            alert(`当前参数下的稳定状态参考值约为：${stableValue} 条鱼\n\n` +
+                  `这是根据环境容纳量计算的理论平衡值，实际值可能受随机因素影响。`);
+        }
+        
+        // 重置参数
+        function resetParameters() {
+            foodSlider.value = 50;
+            spaceSlider.value = 50;
+            predatorToggle.checked = false;
+            initialSlider.value = 5;
+            updateDisplay();
+        }
+        
+        // 事件监听
+        foodSlider.addEventListener('input', updateDisplay);
+        spaceSlider.addEventListener('input', updateDisplay);
+        predatorToggle.addEventListener('change', updateDisplay);
+        initialSlider.addEventListener('input', updateDisplay);
+        resetBtn.addEventListener('click', resetParameters);
+        recordBtn.addEventListener('click', recordPrediction);
+        showStableBtn.addEventListener('click', showStableState);
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            updateDisplay();
+        });
+        
+        // 添加键盘快捷键支持
+        document.addEventListener('keydown', (e) => {
+            // Alt+R 重置
+            if (e.altKey && e.key === 'r') {
+                resetParameters();
+            }
+            // Alt+S 记录
+            if (e.altKey && e.key === 's') {
+                recordPrediction();
+            }
+        });
+    </script>
+</body>
+</html>
